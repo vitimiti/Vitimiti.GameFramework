@@ -21,11 +21,24 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using Vitimiti.GameFramework.NativeInterop.CustomMarshallers;
 
 namespace Vitimiti.GameFramework.NativeInterop;
 
 internal static unsafe partial class Ffi
 {
+    #region SDL_error.h
+
+    [LibraryImport(
+        LibSdl3,
+        StringMarshalling = StringMarshalling.Custom,
+        StringMarshallingCustomType = typeof(UnownedUtf8StringMarshaller)
+    )]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial string SDL_GetError();
+
+    #endregion // SDL_error.h
+
     #region SDL_init.h
 
     [LibraryImport(LibSdl3)]
@@ -38,6 +51,11 @@ internal static unsafe partial class Ffi
 
     public readonly record struct SDL_LogCategory(int Value)
     {
+        [SuppressMessage(
+            "Style",
+            "IDE0046:Convert to conditional expression",
+            Justification = "Consecutive ternary operators are less readable than consecutive if statements."
+        )]
         public override string ToString()
         {
             if (this == SDL_LOG_CATEGORY_APPLICATION)
@@ -196,4 +214,31 @@ internal static unsafe partial class Ffi
     public static partial void SDL_SetMainReady();
 
     #endregion // SDL_main.h
+
+    #region SDL_messagebox.h
+
+    public readonly record struct SDL_MessageBoxFlags(uint Value);
+
+    public static SDL_MessageBoxFlags SDL_MESSAGEBOX_ERROR => new(0x0000_0010U);
+
+    [LibraryImport(LibSdl3, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_ShowSimpleMessageBox(
+        SDL_MessageBoxFlags flags,
+        string title,
+        string message,
+        SDL_Window window
+    );
+
+    #endregion // SDL_messagebox.h
+
+    #region SDL_video.h
+
+    public readonly record struct SDL_Window(nint Handle)
+    {
+        public static SDL_Window Null => new(0);
+    }
+
+    #endregion // SDL_video.h
 }
