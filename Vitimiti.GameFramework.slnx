@@ -1,3 +1,7 @@
 <Solution>
   <Project Path="Vitimiti.GameFramework/Vitimiti.GameFramework.csproj" />
+  <Folder Name="/ManualTests/">
+    <Project Path="Vitimiti.GameFramework.ManualTests.MessageBoxPopsOnUnhandledException/Vitimiti.GameFramework.ManualTests.MessageBoxPopsOnUnhandledException.csproj" />
+  </Folder>
+  <Project Path="Vitimiti.GameFramework.Tests/Vitimiti.GameFramework.Tests.csproj" />
 </Solution>
