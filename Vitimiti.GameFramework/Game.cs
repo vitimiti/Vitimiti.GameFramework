@@ -26,6 +26,10 @@ namespace Vitimiti.GameFramework;
 
 public class Game(ILoggerFactory? loggerFactory = null) : IDisposable
 {
+    private static int _isRunning; // 0 = false, 1 = true
+
+    private int _ownsRunLock; // 0 = false, 1 = true
+
     private SdlContext? _sdlContext = new(loggerFactory);
 
     private bool _disposedValue;
@@ -34,7 +38,25 @@ public class Game(ILoggerFactory? loggerFactory = null) : IDisposable
     public void Run()
     {
         ObjectDisposedException.ThrowIf(_disposedValue, this);
-        Initialize();
+        if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0)
+        {
+            throw new InvalidOperationException(
+                $"Cannot run {nameof(Game)} because another {nameof(Game)} instance is already running."
+            );
+        }
+
+        try
+        {
+            Interlocked.Exchange(ref _ownsRunLock, 1);
+            Initialize();
+        }
+        catch
+        {
+            // Roll back lock ownership on startup failure.
+            Interlocked.Exchange(ref _ownsRunLock, 0);
+            Interlocked.Exchange(ref _isRunning, 0);
+            throw;
+        }
     }
 
     [MemberNotNull(nameof(_sdlContext))]
@@ -64,8 +86,13 @@ public class Game(ILoggerFactory? loggerFactory = null) : IDisposable
         }
 
         _sdlContext = null;
-
         _disposedValue = true;
+
+        // Only release global lock if this instance acquired it.
+        if (Interlocked.Exchange(ref _ownsRunLock, 0) == 1)
+        {
+            Interlocked.Exchange(ref _isRunning, 0);
+        }
     }
 
     ~Game()
