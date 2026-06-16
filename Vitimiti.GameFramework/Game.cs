@@ -17,14 +17,39 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Vitimiti.GameFramework.Internals;
 
 namespace Vitimiti.GameFramework;
 
-public class Game : IDisposable
+public class Game(ILoggerFactory? loggerFactory = null) : IDisposable
 {
-    private SdlContext? _sdlContext;
+    private SdlContext? _sdlContext = new(loggerFactory);
+
     private bool _disposedValue;
+
+    [MemberNotNull(nameof(_sdlContext))]
+    public void Run()
+    {
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
+        Initialize();
+    }
+
+    [MemberNotNull(nameof(_sdlContext))]
+    private void Initialize()
+    {
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
+        if (_sdlContext is null)
+        {
+            throw new InvalidOperationException(
+                $"Cannot initialize {nameof(Game)} because the {nameof(SdlContext)} is null."
+            );
+        }
+
+        _sdlContext.Initialize();
+    }
 
     protected virtual void Dispose(bool disposing)
     {

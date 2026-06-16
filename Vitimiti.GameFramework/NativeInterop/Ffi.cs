@@ -17,8 +17,15 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Vitimiti.GameFramework.NativeInterop;
 
+[SuppressMessage(
+    "Minor Code Smell",
+    "S101:Types should be named in PascalCase",
+    Justification = "This is a direct mapping of C libraries and it uses the same naming convention as the C libraries."
+)]
 internal static partial class Ffi
 {
     private const string LibSdl3 = "SDL3";
