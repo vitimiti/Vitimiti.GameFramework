@@ -17,42 +17,45 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using static Vitimiti.GameFramework.NativeInterop.Ffi;
 
 namespace Vitimiti.GameFramework.Internals;
 
-internal sealed partial class SdlContext : IDisposable
+internal sealed partial class SdlLogger(ILogger<SdlLogger> logger) : IDisposable
 {
-    private SdlLogger? _sdlLogger;
+    private delegate void LogOutput(
+        SDL_LogCategory category,
+        SDL_LogPriority priority,
+        string message
+    );
+
+    private readonly ILogger<SdlLogger> _logger = logger;
+
+    private GCHandle _logOutputFunctionHandle;
     private bool _disposedValue;
 
-    public SdlContext(ILoggerFactory? loggerFactory = null)
-    {
-        SDL_SetMainReady();
-        _sdlLogger = new SdlLogger(
-            loggerFactory?.CreateLogger<SdlLogger>()
-                ?? NullLoggerFactory.Instance.CreateLogger<SdlLogger>()
-        );
-    }
-
-    [MemberNotNull(nameof(_sdlLogger))]
     public void Initialize()
     {
         ObjectDisposedException.ThrowIf(_disposedValue, this);
-        if (_sdlLogger is null)
+        SDL_SetLogPriorities(SDL_LogPriority.FromLogger(_logger));
+        LogOutput logOutputFunction = (category, priority, message) =>
         {
-            throw new InvalidOperationException(
-                $"Cannot initialize {nameof(SdlContext)} because the {nameof(SdlLogger)} is null."
+            var level = priority.ToLogLevel();
+            Log(_logger, level, category, message);
+        };
+
+        _logOutputFunctionHandle = GCHandle.Alloc(logOutputFunction);
+        unsafe
+        {
+            SDL_SetLogOutputFunction(
+                &LogOutputFunction,
+                (void*)GCHandle.ToIntPtr(_logOutputFunctionHandle)
             );
         }
-
-        _sdlLogger.Initialize();
     }
 
     private void Dispose(bool disposing)
@@ -64,16 +67,18 @@ internal sealed partial class SdlContext : IDisposable
 
         if (disposing)
         {
-            _sdlLogger?.Dispose();
+            // No managed resources to dispose of in this class, but if there were any, they would be disposed of here.
         }
 
-        SDL_Quit();
-        _sdlLogger = null;
+        if (_logOutputFunctionHandle.IsAllocated)
+        {
+            _logOutputFunctionHandle.Free();
+        }
 
         _disposedValue = true;
     }
 
-    ~SdlContext()
+    ~SdlLogger()
     {
         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         Dispose(disposing: false);
@@ -85,4 +90,35 @@ internal sealed partial class SdlContext : IDisposable
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    private static unsafe void LogOutputFunction(
+        void* userdata,
+        SDL_LogCategory category,
+        SDL_LogPriority priority,
+        byte* message
+    )
+    {
+        if (userdata is null)
+        {
+            return;
+        }
+
+        var handle = GCHandle.FromIntPtr((nint)userdata);
+        if (!handle.IsAllocated || handle.Target is not LogOutput callback)
+        {
+            return;
+        }
+
+        var messageString = Utf8StringMarshaller.ConvertToManaged(message) ?? string.Empty;
+        callback(category, priority, messageString);
+    }
+
+    [LoggerMessage(EventId = 9000, Message = "[{Category}] {Message}")]
+    private static partial void Log(
+        ILogger logger,
+        LogLevel logLevel,
+        SDL_LogCategory category,
+        string message
+    );
 }
