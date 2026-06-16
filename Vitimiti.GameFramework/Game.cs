@@ -19,7 +19,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Vitimiti.GameFramework.Internals;
 
 namespace Vitimiti.GameFramework;
