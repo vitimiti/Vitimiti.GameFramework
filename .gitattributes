@@ -1,0 +1,53 @@
+# Auto detect
+* text=auto
+
+# C# source
+*.cs     text diff=csharp
+*.cshtml text diff=html
+*.razor  text diff=html
+*.csx    text diff=csharp
+
+# Visual Studio (require CRLF)
+*.sln        text eol=crlf
+*.csproj     text
+*.vbproj     text
+*.fsproj     text
+*.dbproj     text
+*.props      text
+*.targets    text
+*.ruleset    text
+*.vsixmanifest text
+*.vsct       text
+
+# XML config
+*.config     text
+*.xml        text
+*.xaml       text
+*.resx       text
+*.nuspec     text
+
+# Script files
+*.ps1   text eol=crlf
+*.psm1  text eol=crlf
+*.psd1  text eol=crlf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.sh    text eol=lf
+
+# Data
+*.json  text
+*.csv   text
+*.sql   text diff=sql
+
+# NuGet
+*.nupkg binary
+
+# Compiled
+*.dll   binary
+*.exe   binary
+*.pdb   binary
+*.cache binary
+
+# Designer files (suppress diff)
+*.Designer.cs text -diff
+*.designer.cs text -diff
