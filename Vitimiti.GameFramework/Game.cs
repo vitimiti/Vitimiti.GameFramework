@@ -29,7 +29,6 @@ public class Game(ILoggerFactory? loggerFactory = null) : IDisposable
     private static int _isRunning; // 0 = false, 1 = true
 
     private int _ownsRunLock; // 0 = false, 1 = true
-
     private SdlContext? _sdlContext = new(loggerFactory);
 
     private bool _disposedValue;
